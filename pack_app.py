@@ -46,9 +46,10 @@ def main():
     ap.add_argument("--alias", required=True)
     ap.add_argument("--storepass", required=True)
     ap.add_argument("--keypass", required=True)
-    ap.add_argument("--cert-sha256", required=True, help="hex SHA-256 of the signer that re-signs this APK")
+    ap.add_argument("--cert-sha256", help="hex SHA-256 of the signing cert; auto-derived from the keystore if omitted")
     ap.add_argument("--label", default="lab.shield.nostix:v1")
-    ap.add_argument("--original-factory", default="androidx.core.app.CoreComponentFactory")
+    ap.add_argument("--original-factory", default="android.app.AppComponentFactory",
+                    help="factory BootFactory delegates to; the framework base survives R8")
     ap.add_argument("--build-tools", default="35.0.0")
     ap.add_argument("--platform", default="android-32")
     ap.add_argument("--ndk", required=True)
@@ -62,6 +63,18 @@ def main():
     tc = NDK / "toolchains/llvm/prebuilt" / ndk_host_tag() / "bin"
     javac = JAVA_HOME / "bin/javac"
     java = JAVA_HOME / "bin/java"
+
+    # Auto-derive the signing-cert SHA-256 from the keystore if not supplied.
+    if not args.cert_sha256:
+        kt = subprocess.run(
+            [str(JAVA_HOME / "bin" / "keytool"), "-list", "-v", "-keystore", args.keystore,
+             "-storepass", args.storepass, "-alias", args.alias],
+            capture_output=True, text=True)
+        m = re.search(r"SHA256:\s*([0-9A-Fa-f:]+)", kt.stdout)
+        if not m:
+            raise SystemExit("could not read SHA-256 from keystore; pass --cert-sha256 explicitly")
+        args.cert_sha256 = m.group(1).replace(":", "").lower()
+        print(f"derived cert-sha256 from keystore: {args.cert_sha256}")
 
     W = pathlib.Path(args.work)
     if W.exists():
