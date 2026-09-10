@@ -5,11 +5,24 @@ Input must be a release APK already built with the shield integration (manifest
 appComponentFactory=lab.shield.BootFactory, MainApplication.getJSBundleFile ->
 lab.shield.BundleLoader). Resources stay plaintext. Nothing here touches the network.
 """
-import argparse, os, re, secrets, shutil, subprocess, zipfile, pathlib
+import argparse, os, platform, re, secrets, shutil, subprocess, zipfile, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent
-SDK = pathlib.Path(os.environ.get("ANDROID_HOME", os.path.expanduser("~/Library/Android/sdk")))
+SDK = pathlib.Path(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+                   or os.path.expanduser("~/Library/Android/sdk"))
 JAVA_HOME = pathlib.Path(os.environ["JAVA_HOME"])
+
+def ndk_host_tag():
+    """NDK prebuilt-toolchain directory name for the current host OS."""
+    s = platform.system()
+    tag = {"Darwin": "darwin-x86_64", "Linux": "linux-x86_64", "Windows": "windows-x86_64"}.get(s)
+    if not tag:
+        raise SystemExit(f"unsupported host OS for NDK toolchain: {s}")
+    return tag
+
+def exe(name):
+    """SDK/NDK CLI tools carry a .bat/.cmd suffix on Windows."""
+    return name + (".bat" if platform.system() == "Windows" else "")
 
 ABI_TRIPLE = {
     "arm64-v8a": "aarch64-linux-android",
@@ -46,7 +59,7 @@ def main():
     BT = SDK / "build-tools" / args.build_tools
     ANDROID_JAR = SDK / "platforms" / args.platform / "android.jar"
     NDK = pathlib.Path(args.ndk)
-    tc = NDK / "toolchains/llvm/prebuilt/darwin-x86_64/bin"
+    tc = NDK / "toolchains/llvm/prebuilt" / ndk_host_tag() / "bin"
     javac = JAVA_HOME / "bin/javac"
     java = JAVA_HOME / "bin/java"
 
@@ -104,7 +117,7 @@ def main():
     boot_dex = W / "bootdex"
     boot_dex.mkdir()
     classfiles = [p for p in boot_cls.rglob("*.class")]
-    run(BT / "d8", "--min-api", args.min_sdk, "--lib", ANDROID_JAR,
+    run(BT / exe("d8"), "--min-api", args.min_sdk, "--lib", ANDROID_JAR,
         "--output", boot_dex, *classfiles)
 
     # ---- 5. libshieldkey.so per ABI ----
@@ -114,7 +127,7 @@ def main():
         if not triple:
             print(f"  skip unknown abi {abi}")
             continue
-        clang = tc / f"{triple}{args.min_sdk}-clang"
+        clang = tc / (f"{triple}{args.min_sdk}-clang" + (".cmd" if platform.system() == "Windows" else ""))
         outso = libs / abi / "libshieldkey.so"
         outso.parent.mkdir(parents=True, exist_ok=True)
         run(clang, "-shared", "-fPIC", "-O2", "-fvisibility=hidden", "-s",
@@ -152,12 +165,12 @@ def main():
 
     # ---- 7. align + sign ----
     aligned = W / "unsigned.apk"
-    run(BT / "zipalign", "-f", "-p", "4", unaligned, aligned)
+    run(BT / exe("zipalign"), "-f", "-p", "4", unaligned, aligned)
     out = pathlib.Path(args.out)
-    run(BT / "apksigner", "sign", "--ks", args.keystore, "--ks-key-alias", args.alias,
+    run(BT / exe("apksigner"), "sign", "--ks", args.keystore, "--ks-key-alias", args.alias,
         "--ks-pass", f"pass:{args.storepass}", "--key-pass", f"pass:{args.keypass}",
         "--out", out, aligned)
-    run(BT / "apksigner", "verify", out)
+    run(BT / exe("apksigner"), "verify", out)
     print(f"\nPROTECTED APK: {out}")
 
 if __name__ == "__main__":
