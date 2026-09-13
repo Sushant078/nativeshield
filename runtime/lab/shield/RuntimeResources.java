@@ -4,8 +4,9 @@ package lab.shield;
  * Decrypts protected payloads (DEX and the Hermes bundle) with a key derived at runtime
  * and bound to the signing certificate:
  *   certHash = ApkCert.signerSha256(apk);  key = NativeKey.derive(certHash)
- * No key is stored in the app; the raw rootSecret lives only inside libshieldkey.so, and
- * NativeKey returns null (so decryption fails) unless the running APK's signer matches.
+ * The content key is not stored directly. Root-secret shares are embedded in
+ * libshieldkey.so, and NativeKey returns null (so decryption fails) unless the running
+ * APK's signer matches and the native RASP key gate permits derivation.
  *
  * Scope: DEX + Hermes bundle. Resources stay plaintext, so there is no resource-loader path.
  */

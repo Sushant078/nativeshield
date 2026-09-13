@@ -15,7 +15,8 @@ import javax.crypto.spec.SecretKeySpec;
  * (read live via PackageManager on device, or from the keystore at pack time).
  * Re-signing the APK with a different certificate changes the salt, so the derived
  * key changes, so AES-GCM authentication fails and nothing decrypts. This binds the
- * payloads to a single signer with no stored key to lift.
+ * payloads to a single signer. It raises the cost of repackaging, but the native
+ * derivation material remains recoverable by a sufficiently capable local attacker.
  *
  * rootSecret itself is NOT shipped as a Java constant in the real build; it is
  * assembled in native code from scattered fragments (Stage 2). This class only

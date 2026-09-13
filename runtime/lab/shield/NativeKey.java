@@ -1,9 +1,10 @@
 package lab.shield;
 
 /**
- * Bridge to the native key module (libshieldkey.so). The raw rootSecret is assembled
- * only inside native code; Java receives at most the derived 32-byte content key, and
- * only when the running APK is signed by the expected certificate.
+ * Bridge to the native key module (libshieldkey.so). Root-secret shares are embedded
+ * in that library and assembled only inside native code. Java receives at most the
+ * derived 32-byte content key, and only when the running APK is signed by the expected
+ * certificate and the native RASP key gate permits derivation.
  */
 public final class NativeKey {
     private NativeKey() {}

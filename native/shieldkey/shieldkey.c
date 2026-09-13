@@ -1,6 +1,9 @@
 #include "shieldcrypto.h"
 #include "shield_secret.h"   /* generated per-build: SHIELD_SHARES, SHIELD_CERT_SHA256, SHIELD_INFO, SHIELD_SHARE_COUNT */
 #include <string.h>
+#ifndef SHIELD_HOST_TEST
+#include "rasp.h"
+#endif
 
 /*
  * Reassemble the per-build rootSecret from N XOR shares (no single array holds it),
@@ -13,6 +16,13 @@
  */
 int shield_derive_key(const uint8_t *live_cert_sha256, uint8_t out_key[32]) {
     memset(out_key, 0, 32);
+
+#ifndef SHIELD_HOST_TEST
+    /* Refuse content-key material when an enforced runtime signal is active. */
+    if (rasp_block_key()) {
+        return -1;
+    }
+#endif
 
     /* Gate: refuse unless the running APK is signed by the expected certificate. */
     if (!shield_ct_eq(live_cert_sha256, SHIELD_CERT_SHA256, 32)) {

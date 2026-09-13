@@ -8,7 +8,7 @@ import java.util.Arrays;
  * Offline proof of the signature-binding property. No Android required.
  *
  * Simulates the whole point of the design:
- *   1. Pack time: encrypt a payload with a key derived from OUR cert (zersys_alias stand-in).
+ *   1. Pack time: encrypt a payload with a key derived from the publisher certificate.
  *   2. Runtime, genuine app: same cert -> same key -> decrypts. PASS.
  *   3. Runtime, attacker re-signed the APK: different cert -> different key -> GCM auth FAILS.
  *   4. Attacker who keeps our cert but flips one ciphertext byte -> GCM auth FAILS.
@@ -27,7 +27,7 @@ public final class DeriveTest {
         byte[] ourCertHash = KeyBinding.certSha256(ourCertDer);
         byte[] attackerCertHash = KeyBinding.certSha256(attackerCertDer);
 
-        String label = "lab.shield.nostix:v1";
+        String label = "dev.nativeshield:v1";
         byte[] payload = "SECRET-DEX-AND-HERMES-BUNDLE-BYTES".getBytes(StandardCharsets.UTF_8);
         String identity = "dex/0";
 

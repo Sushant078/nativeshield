@@ -4,12 +4,12 @@
 The rootSecret is split into N random XOR shares so no single array in the .so
 holds it. The expected signing-cert SHA-256 is baked in as the runtime gate.
 
-Real packer use (Stage 3) will pass the actual zersys_alias cert hash and a fresh
+    A real packer run passes the application signing-cert hash and a fresh
 random rootSecret, and will NOT emit the sidecar files. --test-artifacts writes the
 rootSecret and cert hash out so the offline unit test can cross-check the native
 derivation against the Java packer derivation.
 """
-import argparse, os, secrets, hashlib, hmac, pathlib
+import argparse, secrets, hashlib, hmac, pathlib, re
 
 def hkdf_sha256(ikm, salt, info, length=32):
     if not salt:
@@ -28,17 +28,22 @@ def c_array(name, data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True, help="path to shield_secret.h")
-    ap.add_argument("--label", default="lab.shield.nostix:v1")
+    ap.add_argument("--label", default="dev.nativeshield:v1")
     ap.add_argument("--shares", type=int, default=3)
     ap.add_argument("--root-hex", help="32-byte rootSecret hex (default: random)")
     ap.add_argument("--cert-sha256-hex", help="32-byte signing-cert SHA-256 hex (default: random test value)")
     ap.add_argument("--test-artifacts", help="dir to write root.hex/cert.hex/expected.hex for the unit test")
     args = ap.parse_args()
 
+    if not 2 <= args.shares <= 32:
+        raise SystemExit("--shares must be between 2 and 32")
+    if not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", args.label):
+        raise SystemExit("--label must be 1-128 ASCII letters, digits, dot, underscore, colon, or hyphen")
+
     root = bytes.fromhex(args.root_hex) if args.root_hex else secrets.token_bytes(32)
     cert = bytes.fromhex(args.cert_sha256_hex) if args.cert_sha256_hex else secrets.token_bytes(32)
     assert len(root) == 32 and len(cert) == 32
-    n = max(2, args.shares)
+    n = args.shares
 
     # N-1 random shares; the last share makes XOR of all shares == root.
     shares = [secrets.token_bytes(32) for _ in range(n - 1)]

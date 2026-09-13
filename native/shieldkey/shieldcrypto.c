@@ -84,7 +84,7 @@ int shield_hkdf_sha256(const uint8_t *ikm, size_t ikm_len,
                        const uint8_t *salt, size_t salt_len,
                        const uint8_t *info, size_t info_len,
                        uint8_t *out, size_t out_len) {
-    if (out_len > 255*32) return -1;
+    if (out_len > 255*32 || info_len > 512) return -1;
     uint8_t zero[32]; uint8_t prk[32];
     if (!salt || salt_len==0){ memset(zero,0,32); salt=zero; salt_len=32; }
     shield_hmac_sha256(salt,salt_len,ikm,ikm_len,prk);       /* extract */

@@ -1,0 +1,28 @@
+# NativeShield work directories and protected artifacts
+build/
+work/
+out/
+*.apk
+*.aab
+*.apks
+*.so
+*.class
+
+# Generated key material and signing files
+shield_secret.h
+rasp_config.h
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.der
+
+# Local Android and IDE state
+local.properties
+.gradle/
+.idea/
+*.iml
+.DS_Store
+__pycache__/
+*.pyc
