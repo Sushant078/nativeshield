@@ -87,12 +87,12 @@ flowchart TD
     P[Plain DEX or Hermes bytes] --> G[AES-256-GCM encrypt]
     K[Derived 32-byte content key] --> G
     N[Fresh random 12-byte nonce] --> G
-    A[AAD: NativeShieldLab:v1 plus payload identity] --> G
-    G --> O[NSL1 magic | nonce | ciphertext | 16-byte GCM tag]
+    A["AAD: NativeShieldLab:v1 plus payload identity"] --> G
+    G --> O["NSL1 magic | nonce | ciphertext | 16-byte GCM tag"]
 
-    I1[Identity dex/0] --> A
-    I2[Identity dex/1 ...] --> A
-    I3[Identity bundle] --> A
+    I1["Identity dex/0"] --> A
+    I2["Identity dex/1 ..."] --> A
+    I3["Identity bundle"] --> A
 ```
 
 The identity is authenticated as additional data. Moving a valid `dex/0` envelope to
